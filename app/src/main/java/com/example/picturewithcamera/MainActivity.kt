@@ -44,14 +44,12 @@ class MainActivity : ComponentActivity() {
                 var bitmap: Bitmap? by remember {
                     mutableStateOf(null)
                 }
-
                 var file: File? by remember {
                     mutableStateOf(null)
                 }
 
                 val viewModel by viewModels<MainViewmodel>()
                 val uiState by viewModel.uiState.collectAsState()
-
 
                 val takePicture =
                     rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) {
