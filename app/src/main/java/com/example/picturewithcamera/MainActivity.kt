@@ -2,9 +2,9 @@ package com.example.picturewithcamera
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -25,26 +25,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.picturewithcamera.ui.theme.PictureWithCameraTheme
 import dagger.hilt.android.AndroidEntryPoint
-import java.io.File
 
 @AndroidEntryPoint
+@Suppress("DEPRECATION")
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             PictureWithCameraTheme {
-                val context = LocalContext.current
-
                 var bitmap: Bitmap? by remember {
-                    mutableStateOf(null)
-                }
-                var file: File? by remember {
                     mutableStateOf(null)
                 }
 
@@ -54,15 +48,22 @@ class MainActivity : ComponentActivity() {
                 val takePicture =
                     rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) {
                         try {
-                            bitmap = it.data?.extras?.get("data") as Bitmap
+                            bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                it.data?.extras?.getParcelable(
+                                    "data",
+                                    Bitmap::class.java
+                                ) as Bitmap
 
+                            } else {
+                                it.data?.extras?.get("data") as Bitmap
+                            }
                             if (bitmap != null) {
                                 viewModel.onAction(UiAction.TakePicture(bitmap!!))
                             }
 
 //
                         } catch (e: Exception) {
-                            Log.d("Error ", e.localizedMessage)
+                            e.printStackTrace()
                         }
                     }
 

@@ -19,9 +19,7 @@ class FileRepositoryImpl @Inject constructor(
                 context.contentResolver.openOutputStream(tempFile.toUri())?.use { outStream ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 1, outStream)
                 }
-
                 tempFile
-
             } catch (e: Exception) {
                 null
             }
