@@ -52,10 +52,10 @@ class MainActivity : ComponentActivity() {
                                 it.data?.extras?.getParcelable(
                                     "data",
                                     Bitmap::class.java
-                                ) as Bitmap
-
+                                )
                             } else {
-                                it.data?.extras?.get("data") as Bitmap
+//                                it.data?.extras?.get("data") as Bitmap
+                                it.data?.getParcelableExtra("data")
                             }
                             if (bitmap != null) {
                                 viewModel.onAction(UiAction.TakePicture(bitmap!!))

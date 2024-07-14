@@ -15,9 +15,11 @@ class FileRepositoryImpl @Inject constructor(
     override suspend fun convertBitmapToFileAndSaveToAppStore(bitmap: Bitmap): File? {
         return withContext(Dispatchers.IO) {
             try {
-                val tempFile = File(context.filesDir, "/temp.png")
+                val tempFile = File(context.filesDir, "/temp_${System.currentTimeMillis()}.jpeg")
                 context.contentResolver.openOutputStream(tempFile.toUri())?.use { outStream ->
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 1, outStream)
+                    bitmap.compress(
+                        Bitmap.CompressFormat.JPEG, 100, outStream
+                    )
                 }
                 tempFile
             } catch (e: Exception) {
