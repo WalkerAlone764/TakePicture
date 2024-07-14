@@ -1,10 +1,9 @@
 package com.example.picturewithcamera
 
-import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -25,10 +24,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.picturewithcamera.ui.theme.PictureWithCameraTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
+import java.util.Objects
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
@@ -44,6 +47,26 @@ class MainActivity : ComponentActivity() {
 
                 val viewModel by viewModels<MainViewmodel>()
                 val uiState by viewModel.uiState.collectAsState()
+                val context = LocalContext.current
+
+                val tempFile = File.createTempFile("temperor", ".jpeg", filesDir)
+                var capturedImageUri by remember {
+                    mutableStateOf<Uri>(Uri.EMPTY)
+                }
+//                val uri = tempFile.toUri()
+                val uri = FileProvider.getUriForFile(
+                    Objects.requireNonNull(context),
+                    "com.example.picturewithcamera" + ".provider", tempFile
+                )
+
+                val cameraLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { result ->
+                        if (result) {
+                            capturedImageUri = uri
+                        }
+
+                    }
+
 
                 val takePicture =
                     rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) {
@@ -72,14 +95,15 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         TextButton(onClick = {
-                            takePicture.launch(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
+//                            takePicture.launch(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
+                            cameraLauncher.launch(uri)
                         }) {
                             Text(text = "Take Picture")
                         }
                         Spacer(modifier = Modifier.height(12.dp))
-                        if (uiState.imagePath != null) {
+                        if (capturedImageUri != Uri.EMPTY) {
                             AsyncImage(
-                                model = uiState.imagePath,
+                                model = capturedImageUri,
                                 contentDescription = "",
                                 modifier = Modifier.fillMaxSize()
                             )
