@@ -1,6 +1,6 @@
 package com.example.picturewithcamera
 
-import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,14 +20,14 @@ class MainViewmodel @Inject constructor(
 
     fun onAction(action: UiAction) {
         when (action) {
-            is UiAction.TakePicture -> takePicture(action.bitmap)
+            is UiAction.TakePicture -> takePicture(action.file)
         }
     }
 
 
-    private fun takePicture(bitmap: Bitmap) {
+    private fun takePicture(tempUri: Uri) {
         viewModelScope.launch {
-            val file = fileRepository.convertBitmapToFileAndSaveToAppStore(bitmap)
+            val file = fileRepository.saveFileToAppStore(uri = tempUri)
             Log.d("File", file?.path.toString())
             _uiState.emit(
                 uiState.value.copy(

@@ -1,10 +1,10 @@
 package com.example.picturewithcamera
 
-import android.content.Intent
+import android.Manifest
 import android.graphics.Bitmap
-import android.os.Build
+import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -19,16 +19,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.picturewithcamera.ui.theme.PictureWithCameraTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
+import java.util.Objects
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
@@ -42,37 +47,56 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(null)
                 }
 
+
                 val viewModel by viewModels<MainViewmodel>()
                 val uiState by viewModel.uiState.collectAsState()
 
-                val takePicture =
-                    rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) {
-                        try {
-                            bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                it.data?.extras?.getParcelable(
-                                    "data",
-                                    Bitmap::class.java
-                                )
-                            } else {
-//                                it.data?.extras?.get("data") as Bitmap
-                                it.data?.getParcelableExtra("data")
-                            }
-                            if (bitmap != null) {
-                                viewModel.onAction(UiAction.TakePicture(bitmap!!))
-                            }
+                val context = LocalContext.current
+                val tempFile = File.createTempFile("temperor", ".jpeg", externalCacheDir)
 
-//
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                val uri = FileProvider.getUriForFile(
+                    Objects.requireNonNull(context),
+                    "com.example.picturewithcamera" + ".provider", tempFile
+                )
+
+                var capturedImageUri by remember {
+                    mutableStateOf<Uri>(Uri.EMPTY)
+                }
+
+                val cameraLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { result ->
+                        if (result) {
+                            viewModel.onAction(UiAction.TakePicture(uri))
                         }
+
                     }
+
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) {
+                    if (it) {
+                        Toast.makeText(context, "Permission Granted", Toast.LENGTH_SHORT).show()
+                        cameraLauncher.launch(uri)
+                    } else {
+                        Toast.makeText(context, "Permission Denied", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                LaunchedEffect(key1 = true) {
+                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         TextButton(onClick = {
-                            takePicture.launch(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
+//                            takePicture.launch(
+//                                Intent(
+//                                    MediaStore.ACTION_IMAGE_CAPTURE,
+//                                )
+//                            )
+                            cameraLauncher.launch(uri)
                         }) {
                             Text(text = "Take Picture")
                         }
@@ -80,8 +104,7 @@ class MainActivity : ComponentActivity() {
                         if (uiState.imagePath != null) {
                             AsyncImage(
                                 model = uiState.imagePath,
-                                contentDescription = "",
-                                modifier = Modifier.fillMaxSize()
+                                contentDescription = "Captured Image"
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
